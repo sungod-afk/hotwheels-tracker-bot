@@ -45,17 +45,17 @@ def tracking_loop():
     for name, url in cars_to_track.items():
       try:
         response = requests.get(url, headers=headers, timeout=15)
-
-        # Safer check: Item is truly in stock only if 'Add to Cart' or 'BUY NOW' appears
         page_text = response.text.upper()
-        is_in_stock = "ADD TO CART" in page_text or "BUY NOW" in page_text
-        is_explicitly_out = (
-            "OUT OF STOCK" in page_text or "SOLD OUT" in page_text
-        )
 
-        # Real stock condition: Must show purchase buttons and NOT show out of stock messages
-        if is_in_stock and not is_explicitly_out:
-          if not stock_status[name]:  # Only alert if it just came in stock
+        # Define explicit out-of-stock indicators on FirstCry
+        out_of_stock_keywords = ["OUT OF STOCK", "SOLD OUT", "TEMPORARILY UNAVAILABLE"]
+        
+        # If any out-of-stock keyword is found, it's out of stock
+        is_out = any(keyword in page_text for keyword in out_of_stock_keywords)
+
+        # If it's NOT out of stock, treat it as available!
+        if not is_out:
+          if not stock_status[name]:  # Only alert if it wasn't already marked in-stock
             logging.info(f"REAL ALERT: {name} is IN STOCK!")
             if token and chat_id:
               tg_resp = requests.post(
