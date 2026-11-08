@@ -47,16 +47,16 @@ def tracking_loop():
         response = requests.get(url, headers=headers, timeout=15)
         page_text = response.text.upper()
 
-        # Define explicit out-of-stock indicators on FirstCry
-        out_of_stock_keywords = ["OUT OF STOCK", "SOLD OUT", "TEMPORARILY UNAVAILABLE"]
-        
-        # If any out-of-stock keyword is found, it's out of stock
-        is_out = any(keyword in page_text for keyword in out_of_stock_keywords)
+        # Check if the page is valid and actually contains the Add to Cart button
+        has_add_to_cart = "ADD TO CART" in page_text
+        is_out_of_stock = (
+            "OUT OF STOCK" in page_text and "ADD TO CART" not in page_text
+        )
 
-        # If it's NOT out of stock, treat it as available!
-        if not is_out:
-          if not stock_status[name]:  # Only alert if it wasn't already marked in-stock
-            logging.info(f"REAL ALERT: {name} is IN STOCK!")
+        # It is truly in stock if "ADD TO CART" exists on the page
+        if response.status_code == 200 and has_add_to_cart and not is_out_of_stock:
+          if not stock_status[name]:
+            logging.info(f"REAL ALERT: {name} is confirmed IN STOCK!")
             if token and chat_id:
               tg_resp = requests.post(
                   f"https://api.telegram.org/bot{token}/sendMessage",
@@ -69,7 +69,7 @@ def tracking_loop():
                   },
                   timeout=10,
               )
-              logging.info(f"Telegram API response: {tg_resp.status_code}")
+              logging.info(f"Telegram response status: {tg_resp.status_code}")
             stock_status[name] = True
         else:
           logging.info(f"Checked {name}: Out of Stock")
