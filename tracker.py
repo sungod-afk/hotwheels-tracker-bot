@@ -57,13 +57,11 @@ def tracking_loop():
 
     for name, url in cars_to_track.items():
       try:
-        response = requests.get(
-            url, headers=headers, cookies=cookies, timeout=15
-        )
+        # Route through a public HTTP proxy to bypass Render's datacenter IP block
+        proxied_url = f"https://api.allorigins.win/raw?url={requests.utils.quote(url)}"
+        response = requests.get(proxied_url, timeout=15)
         page_text = response.text.upper()
 
-        # FirstCry embeds stock and product details in JSON/script blocks or data attributes.
-        # Let's check for stock indicators in the raw page source or JSON metadata:
         is_available = (
             "IN_STOCK" in page_text
             or "ADD TO CART" in page_text
@@ -73,7 +71,6 @@ def tracking_loop():
         )
         is_explicitly_out = "OUT OF STOCK" in page_text or "SOLD OUT" in page_text
 
-        # For debugging: log what we found for Feline
         if name == "Feline":
           logging.info(
               f"DEBUG Feline: Status {response.status_code} | Available flag:"
