@@ -2,6 +2,7 @@ import logging
 import os
 import threading
 import time
+from curl_cffi import requests as c_requests
 from flask import Flask
 import requests
 
