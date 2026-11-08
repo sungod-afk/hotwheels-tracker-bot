@@ -53,18 +53,16 @@ def tracking_loop():
 
     for name, url in cars_to_track.items():
       try:
-        # Extract product ID or use the direct page with browser impersonation
+        # Use curl_cffi with a specific Chrome version impersonation profile
         response = c_requests.get(
-            url, impersonate="chrome", cookies=cookies, timeout=15
+            url, impersonate="chrome120", cookies=cookies, timeout=15
         )
         page_text = response.text.upper()
 
-        # Look for stock JSON flags or cart button availability in the rendered response
         is_available = (
             "ADD TO CART" in page_text
             or "BUYNOW" in page_text
             or '"STOCK":1' in page_text
-            or '"IS_STOCK":TRUE' in page_text
         )
         is_explicitly_out = "OUT OF STOCK" in page_text or "SOLD OUT" in page_text
 
