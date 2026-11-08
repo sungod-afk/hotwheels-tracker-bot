@@ -79,7 +79,7 @@ def tracking_loop():
 
       time.sleep(5)
 
-    time.sleep(300)
+    time.sleep(125)
 
 if __name__ == "__main__":
   # 1. Start tracking loop in a background thread
