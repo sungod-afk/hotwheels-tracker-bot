@@ -28,6 +28,7 @@ def tracking_loop():
       "REXY": "https://fclinks.firstcry.com/obZe/w9jq793w",
       "DINO": "https://fclinks.firstcry.com/obZe/087k0h1o",
       "RAM STH": "https://fclinks.firstcry.com/obZe/pwhzhqlt",
+      "Feline": "https://fclinks.firstcry.com/obZe/8kqfjluq",
   }
 
   logging.info(f"Started tracker monitoring {len(cars_to_track)} cars!")
