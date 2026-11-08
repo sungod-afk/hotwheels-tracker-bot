@@ -32,17 +32,22 @@ def run_bot():
         },
         {
             "url": " https://fclinks.firstcry.com/obZe/w9jq793w",
-            "name": "REXY",
+            "name": "REXY TT",
             "last_status": "Out of Stock",
         },
         {
             "url": "https://fclinks.firstcry.com/obZe/eg9eunki",
-            "name": "STH",
+            "name": "STH Plymouth",
             "last_status": "Out of Stock",
         },
         {
             "url": "https://fclinks.firstcry.com/obZe/087k0h1o",
             "name": "Yellow Dino",
+            "last_status": "Out of Stock",
+        },
+        {
+            "url": "https://fclinks.firstcry.com/obZe/pwhzhqlt",
+            "name": "STH RAM",
             "last_status": "Out of Stock",
         },
         # Just copy, paste, and edit a new block for every car you want to add!
