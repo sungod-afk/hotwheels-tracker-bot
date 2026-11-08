@@ -38,36 +38,29 @@ def tracking_loop():
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
-            " like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
-
-    # Pass headers and a pincode cookie so FirstCry returns regional availability
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
-            " like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            " like Gecko) Chrome/122.0.0.0 Safari/537.36"
         ),
-        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        ),
+        "Accept-Language": "en-US,en;q=0.5",
         "Referer": "https://www.firstcry.com/",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
     }
-    cookies = {
-        "pincode": "401303"
-    }  # Matches your local delivery pincode from the screenshot
+    cookies = {"pincode": "401303"}
 
     for name, url in cars_to_track.items():
       try:
-        # Route through a public HTTP proxy to bypass Render's datacenter IP block
-        proxied_url = f"https://api.allorigins.win/raw?url={requests.utils.quote(url)}"
-        response = requests.get(proxied_url, timeout=15)
+        response = requests.get(
+            url, headers=headers, cookies=cookies, timeout=15
+        )
         page_text = response.text.upper()
 
         is_available = (
-            "IN_STOCK" in page_text
-            or "ADD TO CART" in page_text
+            "ADD TO CART" in page_text
             or "BUYNOW" in page_text
             or '"STOCK":1' in page_text
-            or '"STATUS":"IN"' in page_text
         )
         is_explicitly_out = "OUT OF STOCK" in page_text or "SOLD OUT" in page_text
 
@@ -107,7 +100,7 @@ def tracking_loop():
 
       time.sleep(5)
 
-    time.sleep(125)
+    time.sleep(120)
 
 if __name__ == "__main__":
   # 1. Start tracking loop in a background thread
@@ -118,26 +111,3 @@ if __name__ == "__main__":
   # 2. Run Flask web server on Render's required port
   port = int(os.environ.get("PORT", 10000))
   app.run(host="0.0.0.0", port=port)
-
-headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
-            " like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        ),
-        "Accept": (
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
-        ),
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Referer": "https://www.firstcry.com/",
-        "Sec-Ch-Ua": (
-            '"Chromium";v="122", "Not(A:Brand";v="8", "Google Chrome";v="122"'
-        ),
-        "Sec-Ch-Ua-Mobile": "?0",
-        "Sec-Ch-Ua-Platform": '"Windows"',
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "same-origin",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1",
-    }
