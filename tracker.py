@@ -1,113 +1,111 @@
 import logging
+import os
 import threading
 import time
-import os
-import requests
 from flask import Flask
+import requests
 
-# Flask app to keep the service alive on free cloud hosts
+# Set up logging for Render dashboard
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 app = Flask(__name__)
 
 
 @app.route("/")
 def home():
-    return "Hot Wheels Tracker Bot is running!"
+  return "Hot Wheels Tracker Bot is active!"
 
 
-def run_bot():
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO
-    )
+def tracking_loop():
+  """Background loop that checks FirstCry stock every 5 minutes."""
+  token = os.environ.get("8746211507:AAHI27hTvMGb0S8sOZoctwQqiO1HLlNc8zg")
+  chat_id = os.environ.get("5262552780")
 
-    TELEGRAM_BOT_TOKEN = "8746211507:AAHI27hTvMGb0S8sOZoctwQqiO1HLlNc8zg" # Replace with your token
-    CHAT_ID = "5262552780" # Replace with your chat ID
-    PINCODE = "401303" # Your Virar PIN code
+  # Define your 5 cars with a label and their FirstCry URL
+  cars_to_track = {
+      "Plymouth (STH)": "https://fclinks.firstcry.com/obZe/eg9eunki",
+      "Nissan Skyline TH": "https://fclinks.firstcry.com/obZe/4o7zraxx",
+      "REXY": "https://fclinks.firstcry.com/obZe/w9jq793w",
+      "DINO": "https://fclinks.firstcry.com/obZe/087k0h1o",
+      "RAM STH": "https://fclinks.firstcry.com/obZe/pwhzhqlt",
+  }
 
-    # --- ADD ALL YOUR TARGET CARS HERE ---
-    TRACKED_ITEMS = [
-        {
-            "url": "https://www.firstcry.com/product-url-slug-1",
-            "name": "Nissan Skyline TH",
-            "last_status": "Out of Stock",
-        },
-        {
-            "url": " https://fclinks.firstcry.com/obZe/w9jq793w",
-            "name": "REXY",
-            "last_status": "Out of Stock",
-        },
-        {
-            "url": "https://fclinks.firstcry.com/obZe/eg9eunki",
-            "name": "STH",
-            "last_status": "Out of Stock",
-        },
-        # Just copy, paste, and edit a new block for every car you want to add!
-    ]
+  logging.info(f"Started Hot Wheels tracker monitoring {len(cars_to_track)} cars!")
 
-    def send_telegram_message(message):
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
-        try:
-            requests.post(url, json=payload, timeout=10)
-        except Exception as e:
-            logging.error(f"Telegram error: {e}")
+  # Send startup notification to Telegram
+  if token and chat_id:
+    try:
+      requests.post(
+          f"https://api.telegram.org/bot{token}/sendMessage",
+          json={
+              "chat_id": chat_id,
+              "text": (
+                  f"🤖 Cloud Hot Wheels Tracker Bot is live tracking"
+                  f" {len(cars_to_track)} cars!"
+              ),
+          },
+          timeout=10,
+      )
+    except Exception as e:
+      logging.error(f"Failed to send startup message: {e}")
 
-    send_telegram_message(
-        f"🤖 Cloud Hot Wheels Tracker Bot is live tracking {len(TRACKED_ITEMS)} cars!"
-    )
+  # Keep track of last known stock status to avoid duplicate spam alerts
+  stock_status = {name: True for name in cars_to_track.keys()}
 
-    while True:
-        for item in TRACKED_ITEMS:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-            try:
-                response = requests.get(
-                    item["url"], headers=headers, timeout=15
-                )
-                if response.status_code == 200:
-                    html = response.text.lower()
-                    if (
-                        "add to cart" in html
-                        or "buy now" in html
-                        or "in stock" in html
-                    ):
-                        current_status = "In Stock"
-                    else:
-                        current_status = "Out of Stock"
-                else:
-                    current_status = "Out of Stock"
-            except Exception:
-                current_status = "Out of Stock"
+  while True:
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
+            " like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
 
-            logging.info(f"Checked {item['name']}: {current_status}")
+    for name, url in cars_to_track.items():
+      try:
+        response = requests.get(url, headers=headers, timeout=15)
 
-            # If status flips, trigger alert and update status
-            if (
-                current_status == "In Stock"
-                and item["last_status"] == "Out of Stock"
-            ):
-                alert_message = (
-                    f"🚨 *HOT WHEELS BACK IN STOCK!* 🚨\n\n"
-                    f"Car: {item['name']}\n"
-                    f"PIN Code: {PINCODE}\n"
-                    f"Link: {item['url']}"
-                )
-                send_telegram_message(alert_message)
-                item["last_status"] = "In Stock"
-            elif current_status == "Out of Stock":
-                item["last_status"] = "Out of Stock"
+        # Basic stock verification: Adjust 'Out of Stock' based on FirstCry's exact page text layout
+        is_out_of_stock = "Out of Stock" in response.text
 
-            # Small delay between checking each link to avoid hammering the server
-            time.sleep(3)
+        if not is_out_of_stock and stock_status[name]:
+          # Car came IN stock!
+          logging.info(f"ALERT: {name} is IN STOCK!")
+          if token and chat_id:
+            requests.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": (
+                        f"🔥 **{name}** is IN STOCK on FirstCry!\nGrab it"
+                        f" now: {url}"
+                    ),
+                },
+                timeout=10,
+            )
+          stock_status[name] = False  # Mark as in-stock to prevent alert spam
 
-        # Wait 5 minutes before looping through the entire watchlist again
-        time.sleep(300)
+        elif is_out_of_stock:
+          logging.info(f"Checked {name}: Out of Stock")
+          stock_status[name] = True
+
+      except Exception as e:
+        logging.error(f"Error checking {name} ({url}): {e}")
+
+      # Small pause between each car request to be gentle on FirstCry's servers
+      time.sleep(5)
+
+    # Wait 5 minutes (300 seconds) before running the next full check cycle
+    time.sleep(300)
 
 
-# Run the stock checker thread alongside the web server
 if __name__ == "__main__":
-    t = threading.Thread(target=run_bot)
-    t.daemon = True
-    t.start()
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+  # 1. Start tracking loop in a background thread
+  bot_thread = threading.Thread(target=tracking_loop)
+  bot_thread.daemon = True
+  bot_thread.start()
+
+  # 2. Run Flask web server on Render's required port
+  port = int(os.environ.get("PORT", 10000))
+  app.run(host="0.0.0.0", port=port)
