@@ -36,33 +36,17 @@ def tracking_loop():
   stock_status = {name: False for name in cars_to_track.keys()}
 
   while True:
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,"
-            " like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        ),
-        "Accept": (
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-        ),
-        "Accept-Language": "en-US,en;q=0.5",
-        "Referer": "https://www.firstcry.com/",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-    }
-    cookies = {"pincode": "401303"}
-
     for name, url in cars_to_track.items():
       try:
-        # Use curl_cffi with a specific Chrome version impersonation profile
-        response = c_requests.get(
-            url, impersonate="chrome120", cookies=cookies, timeout=15
-        )
+        # Route request through Jina Reader API to bypass Cloudflare datacenter blocks
+        jina_url = f"https://r.jina.ai/{url}"
+        response = requests.get(jina_url, timeout=20)
         page_text = response.text.upper()
 
         is_available = (
             "ADD TO CART" in page_text
             or "BUYNOW" in page_text
-            or '"STOCK":1' in page_text
+            or "IN STOCK" in page_text
         )
         is_explicitly_out = "OUT OF STOCK" in page_text or "SOLD OUT" in page_text
 
